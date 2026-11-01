@@ -48,6 +48,7 @@ Commands: `install`, `update`, `restart`, `stop`, `status`, `logs`, `backup`, `r
 ```
 /opt/open-webui-api/
 ├── compose.yaml
+├── compose.env # non-secret Compose interpolation values (0600)
 ├── .env       # provider API key, admin bootstrap credentials, secret key (0600)
 ├── data/      # users, chats, uploads and database
 └── backups/
