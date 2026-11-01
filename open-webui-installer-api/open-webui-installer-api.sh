@@ -17,7 +17,7 @@ warn(){ printf '\033[1;33m[!]\033[0m %s\n' "$*" >&2; }
 die(){ printf '\033[1;31m[x]\033[0m %s\n' "$*" >&2; exit 1; }
 need_root(){ [[ "$EUID" -eq 0 ]] || die "Run with sudo: sudo $0 $*"; }
 have(){ command -v "$1" >/dev/null 2>&1; }
-compose(){ docker compose --project-directory "$INSTALL_DIR" -f "$COMPOSE_FILE" "$@"; }
+compose(){ docker compose --env-file "$INSTALL_DIR/compose.env" --project-directory "$INSTALL_DIR" -f "$COMPOSE_FILE" "$@"; }
 
 check_os(){
   [[ -r /etc/os-release ]] || die "Cannot identify operating system."
@@ -99,6 +99,13 @@ EOF
 }
 
 write_compose(){
+  local port image
+  port="$(grep -m1 '^OPEN_WEBUI_PORT=' "$ENV_FILE" | cut -d= -f2-)"
+  image="$(grep -m1 '^OPEN_WEBUI_IMAGE=' "$ENV_FILE" | cut -d= -f2-)"
+  [[ "$port" =~ ^[0-9]+$ ]] || die "Invalid port in $ENV_FILE."
+  [[ -n "$image" ]] || die "Missing image in $ENV_FILE."
+  printf 'OPEN_WEBUI_PORT=%s\\nOPEN_WEBUI_IMAGE=%s\\n' "$port" "$image" > "$INSTALL_DIR/compose.env"
+  chmod 600 "$INSTALL_DIR/compose.env"
   cat > "$COMPOSE_FILE" <<'EOF'
 services:
   open-webui:
@@ -170,7 +177,7 @@ backup_app(){
   stamp="$(date -u +%Y%m%dT%H%M%SZ)"
   archive="$BACKUP_DIR/open-webui-api-$stamp.tar.gz"
   compose stop
-  tar -czf "$archive" -C "$INSTALL_DIR" data .env compose.yaml
+  tar -czf "$archive" -C "$INSTALL_DIR" data .env compose.env compose.yaml
   compose start
   chmod 600 "$archive"
   log "Backup created: $archive"
