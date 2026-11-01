@@ -12,9 +12,9 @@ CONTAINER_NAME="open-webui-api"
 DEFAULT_PORT=\${OPEN_WEBUI_PORT:-3000}
 DEFAULT_IMAGE=\${OPEN_WEBUI_IMAGE:-ghcr.io/open-webui/open-webui:main}
 
-log(){ printf '\\033[1;32m[+]\\033[0m %s\\n' "$*"; }
-warn(){ printf '\\033[1;33m[!]\\033[0m %s\\n' "$*" >&2; }
-die(){ printf '\\033[1;31m[x]\\033[0m %s\\n' "$*" >&2; exit 1; }
+log(){ printf '\033[1;32m[+]\033[0m %s\n' "$*"; }
+warn(){ printf '\033[1;33m[!]\033[0m %s\n' "$*" >&2; }
+die(){ printf '\033[1;31m[x]\033[0m %s\n' "$*" >&2; exit 1; }
 need_root(){ [[ "$EUID" -eq 0 ]] || die "Run with sudo: sudo $0 $*"; }
 have(){ command -v "$1" >/dev/null 2>&1; }
 compose(){ docker compose --project-directory "$INSTALL_DIR" -f "$COMPOSE_FILE" "$@"; }
@@ -42,36 +42,36 @@ install_docker(){
   docker info >/dev/null 2>&1 || die "Docker daemon is not responding."
   local version
   version="$(docker compose version --short | sed 's/^v//')"
-  [[ "$(printf '%s\\n' 2.30.0 "$version" | sort -V | head -n1)" == "2.30.0" ]] || die "Docker Compose 2.30.0 or newer is required. Installed: $version"
+  [[ "$(printf '%s\n' 2.30.0 "$version" | sort -V | head -n1)" == "2.30.0" ]] || die "Docker Compose 2.30.0 or newer is required. Installed: $version"
 }
 
 prompt_value(){
   local label="$1" var="$2" value
   read -r -p "$label" value
   [[ -n "$value" ]] || die "$var cannot be empty."
-  [[ "$value" != *$'\\n'* && "$value" != *$'\\r'* ]] || die "$var cannot contain line breaks."
+  [[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] || die "$var cannot contain line breaks."
   printf -v "$var" '%s' "$value"
 }
 
 collect_settings(){
   local api_base api_key admin_email admin_name admin_password confirm_password port
-  printf '\\nOpen WebUI + API provider setup\\n'
-  printf 'The API key and admin password are hidden while typing.\\n\\n'
+  printf '\nOpen WebUI + API provider setup\n'
+  printf 'The API key and admin password are hidden while typing.\n\n'
   prompt_value "OpenAI-compatible Base URL (example: https://api.openai.com/v1): " api_base
   api_base="\${api_base%/}"
   [[ "$api_base" =~ ^https?:// ]] || die "Base URL must start with http:// or https://."
-  read -r -s -p "Provider API key: " api_key; printf '\\n'
-  [[ -n "$api_key" && "$api_key" != *$'\\n'* && "$api_key" != *$'\\r'* ]] || die "API key cannot be empty or contain line breaks."
+  read -r -s -p "Provider API key: " api_key; printf '\n'
+  [[ -n "$api_key" && "$api_key" != *$'\n'* && "$api_key" != *$'\r'* ]] || die "API key cannot be empty or contain line breaks."
   prompt_value "Admin email: " admin_email
-  [[ "$admin_email" =~ ^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$ ]] || die "Enter a valid email address."
+  [[ "$admin_email" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || die "Enter a valid email address."
   read -r -p "Admin display name [Administrator]: " admin_name
   admin_name="\${admin_name:-Administrator}"
-  [[ "$admin_name" != *$'\\n'* && "$admin_name" != *$'\\r'* ]] || die "Admin name cannot contain line breaks."
+  [[ "$admin_name" != *$'\n'* && "$admin_name" != *$'\r'* ]] || die "Admin name cannot contain line breaks."
   while :; do
-    read -r -s -p "Admin password (minimum 12 characters): " admin_password; printf '\\n'
+    read -r -s -p "Admin password (minimum 12 characters): " admin_password; printf '\n'
     [[ "\${#admin_password}" -ge 12 ]] || { warn "Use at least 12 characters."; continue; }
-    [[ "$admin_password" != *$'\\n'* && "$admin_password" != *$'\\r'* ]] || { warn "Password cannot contain line breaks."; continue; }
-    read -r -s -p "Confirm admin password: " confirm_password; printf '\\n'
+    [[ "$admin_password" != *$'\n'* && "$admin_password" != *$'\r'* ]] || { warn "Password cannot contain line breaks."; continue; }
+    read -r -s -p "Confirm admin password: " confirm_password; printf '\n'
     [[ "$admin_password" == "$confirm_password" ]] && break
     warn "Passwords do not match. Try again."
   done
@@ -147,14 +147,14 @@ install_app(){
   compose up -d
   sleep 8
   status
-  printf '\\nOpen WebUI: http://SERVER-IP:%s\\n' "$OPEN_WEBUI_PORT"
+  printf '\nOpen WebUI: http://SERVER-IP:%s\n' "$OPEN_WEBUI_PORT"
   log "Admin bootstrap runs only when the Open WebUI database has no users."
   warn "Keep .env private. It contains the provider API key and initial admin credentials."
 }
 
 status(){
   need_root
-  docker ps -a --filter "name=^/\${CONTAINER_NAME}$" --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'
+  docker ps -a --filter "name=^/\${CONTAINER_NAME}$" --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
   docker inspect "$CONTAINER_NAME" >/dev/null 2>&1 && docker inspect -f 'Container state: {{.State.Status}}' "$CONTAINER_NAME" || true
 }
 
@@ -186,7 +186,7 @@ restore_app(){
     read -r -p "Continue? [y/N] " answer
     [[ "$answer" =~ ^[Yy]$ ]] || exit 0
   fi
-  tar -tzf "$archive" | grep -Eq '(^/|(^|/)\\.\\./)' && die "Unsafe archive paths detected."
+  tar -tzf "$archive" | grep -Eq '(^/|(^|/)\.\./)' && die "Unsafe archive paths detected."
   tar -xzf "$archive" -C "$INSTALL_DIR"
   chmod 600 "$ENV_FILE" 2>/dev/null || true
   log "Restore complete. Run '$0 install' to deploy."
